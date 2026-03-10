@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOS Japan Pro</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #f0f2f5; }
+        /* شاشة الشرح التي تظهر مرة واحدة */
+        #welcome-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); color: white; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 20px; text-align: center; box-sizing: border-box;
+        }
+        .guide-box { background: #fff; color: #333; padding: 20px; border-radius: 15px; width: 90%; }
+        .btn-start { background: #007bff; color: white; border: none; padding: 15px 30px; border-radius: 10px; font-size: 18px; margin-top: 20px; width: 100%; }
+        /* الصفحة الرئيسية */
+        .main-content { padding: 20px; }
+        .notif-card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 10px; border-right: 5px solid #28a745; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="welcome-overlay" class="hidden">
+        <div class="guide-box">
+            <h2 style="color: #007bff">مرحباً بك زكي 🚫</h2>
+            <p>لتفعيل الحماية، يرجى اتباع الآتي:</p>
+            <p style="font-size: 14px; color: #666;">
+                1. اضغط الزر بالأسفل.<br>
+                2. اختر <b>SOS Japan Pro</b> كـ Spam App.<br>
+                3. اضغط <b>Set as Default</b>.
+            </p>
+            <button class="btn-start" onclick="firstTimeActivate()">فهمت، ابدأ التفعيل</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <h3>🔔 قائمة الحماية النشطة</h3>
+        <div id="list-content">جاري جلب البيانات من الفيرباس...</div>
+        
+        <button id="manual-settings" style="margin-top:20px; padding:10px; width:100%;" onclick="goToSettings()">إعدادات التطبيقات الافتراضية ⚙️</button>
+    </div>
+
+    <script src="cordova.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="js/index.js"></script>
+</body>
+</html>
