@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.nospam.japan" version="1.8.0" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android">
+    <name>SOS Japan Pro</name>
+    <description>نظام حماية وحظر المكالمات المزعجة</description>
+    <author email="dev@zakaria.com">Zakaria MZ Matar</author>
+    <content src="index.html" />
+    <access origin="*" />
+    <allow-navigation href="*" />
+    <allow-intent href="tel:*" />
+
+    <platform name="android">
+        <preference name="AndroidXEnabled" value="true" />
+        <preference name="android-minSdkVersion" value="26" />
+        <preference name="android-targetSdkVersion" value="34" />
+
+        <feature name="IntentShim">
+            <param name="android-package" value="com.napolitano.cordova.plugin.intent.IntentShim" />
+        </feature>
+
+        <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
+            <application android:usesCleartextTraffic="true" />
+        </edit-config>
+
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <service android:name="com.nospam.japan.CallScreeningService"
+                     android:permission="android.permission.BIND_SCREENING_SERVICE"
+                     android:exported="true">
+                <intent-filter><action android:name="android.telecom.CallScreeningService" /></intent-filter>
+            </service>
+        </config-file>
+
+        <config-file target="AndroidManifest.xml" parent="/*">
+            <uses-permission android:name="android.permission.INTERNET" />
+            <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+            <uses-permission android:name="android.permission.READ_CALL_LOG" />
+            <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
+            <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
+            <uses-permission android:name="android.permission.MODIFY_PHONE_STATE" />
+            <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+            <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+            <uses-permission android:name="android.permission.VIBRATE" />
+            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+        </config-file>
+    </platform>
+</widget>
