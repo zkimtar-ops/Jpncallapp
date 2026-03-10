@@ -22,27 +22,33 @@ jobs:
 
       - name: Build and Sign
         run: |
-          # 1. تثبيت كوردوفا محلياً لتجنب مشاكل الـ PATH
+          # 1. تثبيت كوردوفا محلياً لضمان استقرار المسارات
           npm install cordova
           
-          # 2. إضافة المنصة (بدون عمل create لأن ملفاتك موجودة)
+          # 2. إضافة المنصة أندرويد 13
           npx cordova platform add android@13.0.0
           
-          # 3. إضافة الإضافات (تمت إضافة SQLite وتنظيف القائمة)
+          # 3. إضافة الإضافات (Plugins)
           npx cordova plugin add cordova-sqlite-storage
-          npx cordova plugin add cordova-plugin-intent
           npx cordova plugin add cordova-plugin-android-permissions
           npx cordova plugin add cordova-plugin-local-notification
+          npx cordova plugin add com.napolitano.cordova.plugin.intent
           npx cordova plugin add https://github.com/renanoliveira/cordova-phone-call-trap.git
           
-          # 4. نقل ملف الجافا لمكانه الصحيح (خطوة حاسمة)
-          # تأكد أن ملف CallScreeningService.java موجود في جذر المستودع
+          # --- إصلاح أخطاء Gradle 8.7 ---
+          # حل مشكلة compile() عبر تحويلها إلى implementation لتوافق الإصدارات الجديدة
+          find platforms/android/ -name "*.gradle" -exec sed -i 's/compile /implementation /g' {} +
+          find platforms/android/ -name "*.gradle" -exec sed -i 's/compile(/implementation(/g' {} +
+          
+          # 4. نقل ملف الجافا لمكانه الصحيح (خطوة حاسمة لعمل الحظر)
           mkdir -p platforms/android/app/src/main/java/com/nospam/japan/
           cp CallScreeningService.java platforms/android/app/src/main/java/com/nospam/japan/
           
           # 5. قبول التراخيص وإنشاء مفتاح التوقيع
           yes | sdkmanager --licenses || true
-          keytool -genkey -v -keystore release.jks -alias zakaria_key -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=Zakaria" -deststoretype pkcs12
+          if [ ! -f release.jks ]; then
+            keytool -genkey -v -keystore release.jks -alias zakaria_key -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=Zakaria" -deststoretype pkcs12
+          fi
           
           # 6. إعداد ملف بناء التوقيع
           cat <<EOF > build.json
@@ -59,8 +65,8 @@ jobs:
           }
           EOF
 
-          # 7. بناء التطبيق بصيغة APK
-          npx cordova build android --release --device --buildConfig=build.json -- --packageType=apk
+          # 7. بناء التطبيق مع تحديد Target SDK 34 لحل مشكلة compileSdkVersion
+          npx cordova build android --release --device --buildConfig=build.json -- --project.properties.target=android-34 --packageType=apk
           
           # نسخ الملف الناتج للاستخراج
           cp platforms/android/app/build/outputs/apk/release/app-release.apk ./SOS_Japan_Final_Pro.apk
