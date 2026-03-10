@@ -28,6 +28,7 @@ jobs:
           cordova create . com.nospam.japan "SOS Japan Pro" || true
           
           # 2. إضافة الإضافات (بما فيها Vibration والـ Dialogs والتنبيهات)
+          ​cordova plugin add cordova-sqlite-storage
           cordova plugin add cordova-open-native-settings
           cordova plugin add cordova-plugin-intent
           cordova plugin add cordova-plugin-dialogs
