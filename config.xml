@@ -13,6 +13,8 @@
         <preference name="android-minSdkVersion" value="26" />
         <preference name="android-targetSdkVersion" value="34" />
 
+        <plugin name="cordova-sqlite-storage" spec="^6.0.0" />
+
         <feature name="IntentShim">
             <param name="android-package" value="com.napolitano.cordova.plugin.intent.IntentShim" />
         </feature>
