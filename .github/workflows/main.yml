@@ -22,35 +22,34 @@ jobs:
 
       - name: Build and Sign
         run: |
-          # 1. تثبيت كوردوفا محلياً لضمان استقرار المسارات
+          # 1. تثبيت كوردوفا
           npm install cordova
           
-          # 2. إضافة المنصة أندرويد 13
+          # 2. إضافة المنصة
           npx cordova platform add android@13.0.0
           
-          # 3. إضافة الإضافات (Plugins)
+          # 3. إضافة الإضافات (حل مشكلة 404 عبر استخدام الروابط المباشرة)
           npx cordova plugin add cordova-sqlite-storage
           npx cordova plugin add cordova-plugin-android-permissions
-          npx cordova plugin add cordova-plugin-local-notification
-          npx cordova plugin add com.napolitano.cordova.plugin.intent
+          npx cordova plugin add https://github.com/katzer/cordova-plugin-local-notification.git
+          npx cordova plugin add https://github.com/napolitano/cordova-plugin-intent.git
           npx cordova plugin add https://github.com/renanoliveira/cordova-phone-call-trap.git
           
-          # --- إصلاح أخطاء Gradle 8.7 ---
-          # حل مشكلة compile() عبر تحويلها إلى implementation لتوافق الإصدارات الجديدة
+          # 4. إصلاح أخطاء Gradle 8.7 (تحويل compile إلى implementation)
           find platforms/android/ -name "*.gradle" -exec sed -i 's/compile /implementation /g' {} +
           find platforms/android/ -name "*.gradle" -exec sed -i 's/compile(/implementation(/g' {} +
           
-          # 4. نقل ملف الجافا لمكانه الصحيح (خطوة حاسمة لعمل الحظر)
+          # 5. حقن ملف الجافا (CallScreeningService)
           mkdir -p platforms/android/app/src/main/java/com/nospam/japan/
           cp CallScreeningService.java platforms/android/app/src/main/java/com/nospam/japan/
           
-          # 5. قبول التراخيص وإنشاء مفتاح التوقيع
+          # 6. قبول التراخيص وبناء المفتاح (إذا لم يكن موجوداً)
           yes | sdkmanager --licenses || true
           if [ ! -f release.jks ]; then
             keytool -genkey -v -keystore release.jks -alias zakaria_key -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=Zakaria" -deststoretype pkcs12
           fi
           
-          # 6. إعداد ملف بناء التوقيع
+          # 7. إعداد ملف التوقيع
           cat <<EOF > build.json
           {
             "android": {
@@ -65,10 +64,9 @@ jobs:
           }
           EOF
 
-          # 7. بناء التطبيق مع تحديد Target SDK 34 لحل مشكلة compileSdkVersion
+          # 8. البناء النهائي مع تحديد الهدف أندرويد 14
           npx cordova build android --release --device --buildConfig=build.json -- --project.properties.target=android-34 --packageType=apk
           
-          # نسخ الملف الناتج للاستخراج
           cp platforms/android/app/build/outputs/apk/release/app-release.apk ./SOS_Japan_Final_Pro.apk
 
       - name: Upload Artifacts
