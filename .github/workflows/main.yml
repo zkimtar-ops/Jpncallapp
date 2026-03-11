@@ -52,7 +52,7 @@ jobs:
 
           # ب- حقن ملف الجافا (محرك الحظر) في مكانه الصحيح
           mkdir -p platforms/android/app/src/main/java/com/nospam/japan/
-          cp CallScreeningService.java platforms/android/app/src/main/java/com/nospam/japan/
+          cp CallScreeningService.java platforms/android/app/src/main/java/com/nospam/japan/MyCallScreeningService.java
           
           # -----------------------------------------------
 
