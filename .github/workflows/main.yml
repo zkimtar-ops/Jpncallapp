@@ -28,7 +28,7 @@ jobs:
           # 2. إضافة المنصة
           npx cordova platform add android@13.0.0
           
-          # 3. إضافة الإضافات (Plugins)
+          # 3. إضافة الإضافات (نستخدم النسخ المستقرة)
           npx cordova plugin add cordova-sqlite-storage
           npx cordova plugin add cordova-plugin-android-permissions
           npx cordova plugin add cordova-plugin-device
@@ -36,12 +36,12 @@ jobs:
           npx cordova plugin add com-darryncampbell-cordova-plugin-intent
           npx cordova plugin add https://github.com/renanoliveira/cordova-phone-call-trap.git
           
-          # --- حل مشكلة compileSdkVersion و Gradle 8.7 ---
-          # هذه الأسطر تقوم بتعديل ملفات الـ Gradle لإجبارها على استخدام إصدار 34 وتصحيح أوامر compile
-          find platforms/android/ -name "*.gradle" -exec sed -i 's/compile /implementation /g' {} +
-          find platforms/android/ -name "*.gradle" -exec sed -i 's/compile(/implementation(/g' {} +
+          # --- الإصلاح الدقيق لخطأ Gradle 8.7 ---
+          # التعديل فقط داخل مجلد الإضافات لتجنب تخريب ملفات cordova.gradle الأساسية
+          find platforms/android/cordova-plugin-* -name "*.gradle" -exec sed -i 's/compile /implementation /g' {} +
+          find platforms/android/cordova-plugin-* -name "*.gradle" -exec sed -i 's/compile(/implementation(/g' {} +
           
-          # إجبار المشروع على استخدام الإصدار 34 برمجياً
+          # حل مشكلة compileSdkVersion برمجياً
           echo "cdvCompileSdkVersion=34" >> platforms/android/gradle.properties
           echo "cdvTargetSdkVersion=34" >> platforms/android/gradle.properties
           
