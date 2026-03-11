@@ -1,156 +1,39 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, width=device-width, viewport-fit=cover">
     <title>SOS Japan Pro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/index.css">
     <style>
-        :root {
-            --primary-color: #0062ff;
-            --bg-color: #f0f4f8;
-            --card-bg: #ffffff;
-            --text-main: #2d3436;
-            --text-sub: #636e72;
-            --accent-color: #e74c3c;
-        }
-
-        body {
-            font-family: 'Tajawal', sans-serif;
-            margin: 0;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            line-height: 1.6;
-        }
-
-        /* شاشة الترحيب والشرح */
+        .hidden { display: none; }
         #welcome-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, var(--primary-color), #003594);
-            z-index: 10000; display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.9); z-index: 1000; color: white;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-
-        .guide-container {
-            background: var(--card-bg);
-            width: 85%; padding: 30px;
-            border-radius: 25px; text-align: center;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
-        }
-
-        .guide-step {
-            display: flex; align-items: center; margin: 15px 0;
-            text-align: right; background: #f8f9fa;
-            padding: 12px; border-radius: 12px;
-        }
-
-        .step-num {
-            background: var(--primary-color); color: white;
-            width: 30px; height: 30px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            margin-left: 12px; font-weight: bold; flex-shrink: 0;
-        }
-
-        /* الواجهة الرئيسية */
-        header {
-            background: var(--primary-color); color: white;
-            padding: 30px 20px; text-align: center;
-            border-radius: 0 0 30px 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .main-container { padding: 20px; }
-
-        .status-banner {
-            background: #d1e7dd; color: #0f5132;
-            padding: 10px; border-radius: 10px;
-            margin-bottom: 20px; font-size: 14px; text-align: center;
-            border: 1px solid #badbcc;
-        }
-
-        .notif-card {
-            background: var(--card-bg);
-            padding: 18px; margin-bottom: 12px;
-            border-radius: 15px; display: flex;
-            align-items: center; justify-content: space-between;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.03);
-            border-right: 5px solid var(--primary-color);
-            transition: transform 0.2s;
-        }
-
-        .notif-card:active { transform: scale(0.98); }
-
-        .phone-icon {
-            background: #f1f3f5; padding: 10px;
-            border-radius: 12px; margin-left: 15px;
-        }
-
-        .btn-main {
-            background: var(--primary-color); color: white;
-            border: none; padding: 16px; width: 100%;
-            border-radius: 15px; font-size: 18px; font-weight: bold;
-            cursor: pointer; transition: 0.3s;
-            box-shadow: 0 8px 15px rgba(0,98,255,0.2);
-        }
-
-        .btn-secondary {
-            background: transparent; color: var(--text-sub);
-            border: 1px solid #ccc; padding: 12px;
-            width: 100%; border-radius: 12px; margin-top: 15px;
-            cursor: pointer;
-        }
-
-        .hidden { display: none !important; }
+        .notif-card { background: #f0f0f0; padding: 10px; margin: 5px; border-radius: 5px; color: #333; }
+        #loading-message { color: #ffcc00; text-align: center; margin-top: 20px; }
     </style>
 </head>
 <body>
+    <div id="app">
+        <h1>حماية المكالمات - اليابان</h1>
+        
+        <div id="loading-message">جاري جلب البيانات...</div>
 
-    <div id="welcome-overlay" class="hidden">
-        <div class="guide-container">
-            <h2 style="margin-top:0; color: var(--primary-color)">تفعيل الحماية الذكية 🛡️</h2>
-            <p style="color:var(--text-sub)">للبدء في حظر المكالمات المزعجة، يرجى اتباع الآتي:</p>
-            
-            <div class="guide-step">
-                <div class="step-num">١</div>
-                <div>اضغط على زر <b>"ابدأ التفعيل"</b> بالأسفل.</div>
-            </div>
-            <div class="guide-step">
-                <div class="step-num">٢</div>
-                <div>اختر تطبيق <b>SOS Japan Pro</b> من القائمة.</div>
-            </div>
-            <div class="guide-step">
-                <div class="step-num">٣</div>
-                <div>اضغط على <b>"ضبط كافتراضي"</b> للانتهاء.</div>
-            </div>
+        <div id="list-content"></div>
 
-            <button class="btn-start" onclick="firstTimeActivate()" style="background: var(--primary-color); color:white; border:none; padding:15px; width:100%; border-radius:12px; font-size:18px; font-weight:bold; margin-top:10px;">ابدأ التفعيل الآن</button>
+        <div id="welcome-overlay" class="hidden">
+            <h2>مرحباً بك في SOS Japan</h2>
+            <p>هذا التطبيق يحميك من المكالمات المزعجة تلقائياً.</p>
+            <button onclick="closeWelcome()">ابدأ الآن</button>
         </div>
-    </div>
-
-    <header>
-        <h1 style="margin:0; font-size: 24px;">SOS Japan Pro</h1>
-        <p style="margin:5px 0 0; opacity: 0.8; font-size: 14px;">حمايتك هي أولويتنا في اليابان</p>
-    </header>
-
-    <div class="main-container">
-        <div class="status-banner">
-            🛡️ نظام الحماية نشط ويعمل في الخلفية
-        </div>
-
-        <h3 style="margin-bottom: 15px; display: flex; align-items: center;">
-            الأرقام المحظورة حالياً
-            <span style="background: var(--accent-color); color:white; font-size:10px; padding:2px 8px; border-radius:10px; margin-right:10px;">LIVE</span>
-        </h3>
-
-        <div id="list-content">
-            </div>
-
-        <button class="btn-secondary" onclick="goToSettings()">
-            ⚙️ إعدادات التطبيقات الافتراضية
-        </button>
     </div>
 
     <script src="cordova.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-database.js"></script>
     <script src="js/index.js"></script>
 </body>
 </html>
