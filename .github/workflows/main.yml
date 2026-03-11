@@ -22,13 +22,13 @@ jobs:
 
       - name: Build and Sign
         run: |
-          # 1. تثبيت كوردوفا
+          # 1. تثبيت كوردوفا محلياً
           npm install cordova
           
-          # 2. إضافة المنصة
+          # 2. إضافة المنصة أندرويد 13
           npx cordova platform add android@13.0.0
           
-          # 3. إضافة الإضافات (نستخدم النسخ المستقرة)
+          # 3. إضافة الإضافات (نستخدم نسخ مستقرة لتجنب أخطاء Git)
           npx cordova plugin add cordova-sqlite-storage
           npx cordova plugin add cordova-plugin-android-permissions
           npx cordova plugin add cordova-plugin-device
@@ -36,16 +36,18 @@ jobs:
           npx cordova plugin add com-darryncampbell-cordova-plugin-intent
           npx cordova plugin add https://github.com/renanoliveira/cordova-phone-call-trap.git
           
-          # --- الإصلاح الدقيق لخطأ Gradle 8.7 ---
-          # التعديل فقط داخل مجلد الإضافات لتجنب تخريب ملفات cordova.gradle الأساسية
+          # --- الإصلاح الدقيق والآمن لـ Gradle 8.7 ---
+          # التعديل فقط داخل مجلد الإضافات لعدم تخريب ملفات كوردوفا الأساسية
           find platforms/android/cordova-plugin-* -name "*.gradle" -exec sed -i 's/compile /implementation /g' {} +
           find platforms/android/cordova-plugin-* -name "*.gradle" -exec sed -i 's/compile(/implementation(/g' {} +
           
-          # حل مشكلة compileSdkVersion برمجياً
+          # حل مشكلة compileSdkVersion برمجياً وبشكل قطعي
           echo "cdvCompileSdkVersion=34" >> platforms/android/gradle.properties
           echo "cdvTargetSdkVersion=34" >> platforms/android/gradle.properties
+          echo "android.useAndroidX=true" >> platforms/android/gradle.properties
+          echo "android.enableJetifier=true" >> platforms/android/gradle.properties
           
-          # 4. حقن ملف الجافا (CallScreeningService)
+          # 4. حقن ملف الجافا (CallScreeningService) في مكانه الصحيح
           mkdir -p platforms/android/app/src/main/java/com/nospam/japan/
           cp CallScreeningService.java platforms/android/app/src/main/java/com/nospam/japan/
           
@@ -73,6 +75,7 @@ jobs:
           # 7. البناء النهائي
           npx cordova build android --release --device --buildConfig=build.json -- --project.properties.target=android-34 --packageType=apk
           
+          # نسخ الملف الناتج للاستخراج
           cp platforms/android/app/build/outputs/apk/release/app-release.apk ./SOS_Japan_Final_Pro.apk
 
       - name: Upload Artifacts
