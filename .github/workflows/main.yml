@@ -24,42 +24,36 @@ jobs:
         run: |
           npm install -g cordova
           
-          # 1. إنشاء المشروع (تأكد من استخدام نفس اسم الحزمة في config.xml)
-          cordova create . com.nospam.japan "SOS Japan Pro" || true
-          
-          # 2. إضافة الإضافات (Plugins) المطلوبة للأذونات والحظر
-          cordova plugin add cordova-sqlite-storage
-          cordova plugin add cordova-open-native-settings
-          cordova plugin add cordova-plugin-intent
-          cordova plugin add cordova-plugin-dialogs
-          cordova plugin add cordova-plugin-android-permissions
-          cordova plugin add cordova-plugin-call-number
-          cordova plugin add cordova-plugin-vibration
-          cordova plugin add cordova-plugin-local-notification
-          cordova plugin add cordova-plugin-whitelist
-          cordova plugin add https://github.com/renanoliveira/cordova-phone-call-trap.git
-          
-          # 3. بناء المنصة أندرويد 13 لضمان التوافق
+          # 1. إضافة المنصة أندرويد 13 لضمان التوافق مع SDK 34
           yes | sdkmanager --licenses || true
           cordova platform add android@13.0.0
-
-          # --- الإضافات الحاسمة لنجاح التطبيق (لا تحذفها) ---
           
-          # أ- حل مشكلة compileSdkVersion و Gradle 8.7
-          echo "cdvCompileSdkVersion=34" >> platforms/android/gradle.properties
-          echo "cdvTargetSdkVersion=34" >> platforms/android/gradle.properties
-          find platforms/android/cordova-plugin-* -name "*.gradle" -exec sed -i 's/compile /implementation /g' {} +
+          # 2. إضافة الإضافات بأسماء صحيحة وموجودة في السجل الرسمي
+          cordova plugin add cordova-sqlite-storage
+          cordova plugin add cordova-plugin-android-permissions
+          cordova plugin add cordova-plugin-device
+          cordova plugin add cordova-plugin-dialogs
+          cordova plugin add cordova-plugin-vibration
+          cordova plugin add cordova-plugin-local-notification
+          cordova plugin add com-darryncampbell-cordova-plugin-intent
+          cordova plugin add https://github.com/renanoliveira/cordova-phone-call-trap.git
+          
+          # 3. إصلاح تعارضات Gradle 8.7 (تغيير compile إلى implementation)
+          find platforms/android/ -name "*.gradle" -exec sed -i 's/compile /implementation /g' {} +
+          find platforms/android/ -name "*.gradle" -exec sed -i 's/compile(/implementation(/g' {} +
 
-          # ب- حقن ملف الجافا (محرك الحظر) في مكانه الصحيح
+          # 4. حقن ملف الجافا (محرك الحظر) بالاسم المعتمد في config.xml
           mkdir -p platforms/android/app/src/main/java/com/nospam/japan/
           cp CallScreeningService.java platforms/android/app/src/main/java/com/nospam/japan/MyCallScreeningService.java
           
-          # -----------------------------------------------
+          # 5. حل مشكلة compileSdkVersion برمجياً
+          echo "cdvCompileSdkVersion=34" >> platforms/android/gradle.properties
+          echo "cdvTargetSdkVersion=34" >> platforms/android/gradle.properties
 
-          # 4. إنشاء مفتاح التوقيع الرقمي
+          # 6. إنشاء مفتاح التوقيع
           keytool -genkey -v -keystore release.jks -alias zakaria_key -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=Zakaria" -deststoretype pkcs12
           
-          # 5. إعداد ملف بناء التوقيع
+          # 7. إعداد ملف التوقيع
           cat <<EOF > build.json
           {
             "android": {
@@ -74,12 +68,10 @@ jobs:
           }
           EOF
 
-          # 6. بناء واستخراج الملفات (APK و AAB)
+          # 8. البناء النهائي
           cordova build android --release --device --buildConfig=build.json -- --packageType=apk
-          cordova build android --release --device --buildConfig=build.json -- --packageType=bundle
           
           find platforms/android/app/build/outputs/apk/release/ -name "*.apk" -exec cp {} ./SOS_Japan_Final_Pro.apk \;
-          find platforms/android/app/build/outputs/bundle/release/ -name "*.aab" -exec cp {} ./SOS_Japan_Final_Pro.aab \;
 
       - name: Upload Final Artifacts
         uses: actions/upload-artifact@v4
@@ -87,5 +79,4 @@ jobs:
           name: SOS-Japan-Final-Pro
           path: |
             *.apk
-            *.aab
             release.jks
