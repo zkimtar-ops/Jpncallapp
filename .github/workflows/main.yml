@@ -1,4 +1,4 @@
-name: Safety_Call_Japan_Full_Package
+name: SOS Japan Final Pro
 on:
   push:
     branches: [ main ]
@@ -20,46 +20,72 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Build Android App
+      - name: Build and Sign Everything
         run: |
-          # التثبيت العالمي كما كنت تفعل سابقاً
-          npm install -g cordova --no-audit
+          npm install -g cordova
           
-          # تنظيف البيئة
-          rm -rf node_modules package-lock.json platforms plugins
+          # 1. إنشاء المشروع (تأكد من استخدام نفس اسم الحزمة في config.xml)
+          cordova create . com.nospam.japan "SOS Japan Pro" || true
           
-          # إضافة المنصة والاضافات
-          cordova platform add android@13.0.0 --save
-          cordova plugin add cordova-plugin-android-permissions --save
-          cordova plugin add cordova-plugin-device --save
-          cordova plugin add cordova-sqlite-storage --save
-          cordova plugin add cordova-plugin-local-notification-12 --save
-          cordova plugin add com-darryncampbell-cordova-plugin-intent --save
+          # 2. إضافة الإضافات (Plugins) المطلوبة للأذونات والحظر
+          cordova plugin add cordova-sqlite-storage
+          cordova plugin add cordova-open-native-settings
+          cordova plugin add cordova-plugin-intent
+          cordova plugin add cordova-plugin-dialogs
+          cordova plugin add cordova-plugin-android-permissions
+          cordova plugin add cordova-plugin-call-number
+          cordova plugin add cordova-plugin-vibration
+          cordova plugin add cordova-plugin-local-notification
+          cordova plugin add cordova-plugin-whitelist
+          cordova plugin add https://github.com/renanoliveira/cordova-phone-call-trap.git
+          
+          # 3. بناء المنصة أندرويد 13 لضمان التوافق
+          yes | sdkmanager --licenses || true
+          cordova platform add android@13.0.0
 
-          # --- إصلاحات إجبارية لضمان نجاح البناء (بدون npx) ---
-          # حل مشكلة compileSdkVersion التي تسببت في فشل عملك
+          # --- الإضافات الحاسمة لنجاح التطبيق (لا تحذفها) ---
+          
+          # أ- حل مشكلة compileSdkVersion و Gradle 8.7
           echo "cdvCompileSdkVersion=34" >> platforms/android/gradle.properties
           echo "cdvTargetSdkVersion=34" >> platforms/android/gradle.properties
-          
-          # تصحيح المكتبات القديمة لتتوافق مع Gradle 8.7
           find platforms/android/cordova-plugin-* -name "*.gradle" -exec sed -i 's/compile /implementation /g' {} +
 
-          # حقن ملف الجافا في المسار الصحيح لضمان عمل الحظر
+          # ب- حقن ملف الجافا (محرك الحظر) في مكانه الصحيح
           mkdir -p platforms/android/app/src/main/java/com/nospam/japan/
           cp CallScreeningService.java platforms/android/app/src/main/java/com/nospam/japan/
           
-          # إنشاء مفتاح التوقيع
-          keytool -genkey -v -keystore release.jks -alias safety_key -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=Zakaria" -deststoretype pkcs12
+          # -----------------------------------------------
 
+          # 4. إنشاء مفتاح التوقيع الرقمي
+          keytool -genkey -v -keystore release.jks -alias zakaria_key -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=Zakaria" -deststoretype pkcs12
+          
+          # 5. إعداد ملف بناء التوقيع
           cat <<EOF > build.json
-          {"android": {"release": {"keystore": "release.jks", "storePassword": "123456", "alias": "safety_key", "password": "123456", "keystoreType": "pkcs12"}}}
+          {
+            "android": {
+              "release": {
+                "keystore": "release.jks",
+                "storePassword": "123456",
+                "alias": "zakaria_key",
+                "password": "123456",
+                "keystoreType": "pkcs12"
+              }
+            }
+          }
           EOF
 
-          # البناء النهائي
-          cordova build android --release --buildConfig=build.json -- --packageType=apk
+          # 6. بناء واستخراج الملفات (APK و AAB)
+          cordova build android --release --device --buildConfig=build.json -- --packageType=apk
+          cordova build android --release --device --buildConfig=build.json -- --packageType=bundle
+          
+          find platforms/android/app/build/outputs/apk/release/ -name "*.apk" -exec cp {} ./SOS_Japan_Final_Pro.apk \;
+          find platforms/android/app/build/outputs/bundle/release/ -name "*.aab" -exec cp {} ./SOS_Japan_Final_Pro.aab \;
 
-      - name: Upload APK
+      - name: Upload Final Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: SafeCall-Japan-Final
-          path: platforms/android/app/build/outputs/apk/release/*.apk
+          name: SOS-Japan-Final-Pro
+          path: |
+            *.apk
+            *.aab
+            release.jks
