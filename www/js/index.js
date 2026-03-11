@@ -16,20 +16,44 @@ function onDeviceReady() {
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // إعداد قاعدة البيانات المحلية SQL
+    // 1. فتح قاعدة البيانات المحلية
     db_local = window.sqlitePlugin.openDatabase({name: 'nospam.db', location: 'default'});
+    
     db_local.transaction(function(tx) {
         tx.executeSql('CREATE TABLE IF NOT EXISTS blocked_numbers (number TEXT PRIMARY KEY)');
+    }, function(error) {
+        console.error('SQL Error: ' + error.message);
+    }, function() {
+        // 2. بمجرد جاهزية القاعدة، نعرض الأرقام المخزنة "أوفلاين" أولاً
+        loadNumbersFromSQL();
     });
 
-    // طلب كافة الأذونات المطلوبة (كاملة بناءً على ملفاتك)
+    // 3. طلب كافة الأذونات المستخلصة من مشروعك
     requestAllPermissions();
 
     if (!localStorage.getItem('first_run_done')) {
         document.getElementById('welcome-overlay').classList.remove('hidden');
     }
 
+    // 4. محاولة التحديث من الفيرباس إذا وجد إنترنت
     syncFirebase(db);
+}
+
+// دالة عرض الأرقام من الذاكرة المحلية (تضمن ظهور الأرقام بدون إنترنت)
+function loadNumbersFromSQL() {
+    const container = document.getElementById('list-content');
+    
+    db_local.transaction(function(tx) {
+        tx.executeSql('SELECT number FROM blocked_numbers', [], function(tx, rs) {
+            if (rs.rows.length > 0) {
+                container.innerHTML = ""; // مسح رسالة "جاري الجلب"
+                for (var i = 0; i < rs.rows.length; i++) {
+                    let num = rs.rows.item(i).number;
+                    container.innerHTML += `<div class="notif-card">🚫 حماية نشطة (محلي): ${num}</div>`;
+                }
+            }
+        });
+    });
 }
 
 function requestAllPermissions() {
@@ -42,9 +66,33 @@ function requestAllPermissions() {
         permissions.MODIFY_PHONE_STATE,
         permissions.SYSTEM_ALERT_WINDOW,
         permissions.POST_NOTIFICATIONS,
-        permissions.VIBRATE
+        permissions.VIBRATE,
+        permissions.ACCESS_NETWORK_STATE
     ];
     permissions.requestPermissions(list, (s) => console.log("Permissions OK"), (e) => console.error(e));
+}
+
+function syncFirebase(db) {
+    db.ref('spam_numbers').on('value', (snap) => {
+        const container = document.getElementById('list-content');
+        
+        db_local.transaction(function(tx) {
+            // تحديث القاعدة المحلية بالبيانات الجديدة من السحابة
+            tx.executeSql('DELETE FROM blocked_numbers'); 
+            
+            snap.forEach((child) => {
+                let num = child.key;
+                tx.executeSql('INSERT OR REPLACE INTO blocked_numbers (number) VALUES (?)', [num]);
+            });
+        }, function(err) {
+            console.error("Sync Transaction Error: " + err.message);
+        }, function() {
+            // بعد انتهاء التحديث بنجاح، أعد عرض القائمة المحدثة
+            loadNumbersFromSQL();
+        });
+    }, (error) => {
+        console.log("Firebase Offline: سيتم الاعتماد على البيانات المحلية.");
+    });
 }
 
 function firstTimeActivate() {
@@ -59,20 +107,4 @@ function goToSettings() {
             action: "android.settings.MANAGE_DEFAULT_APPS_SETTINGS"
         }, () => {}, (e) => alert("خطأ في فتح الإعدادات"));
     }
-}
-
-function syncFirebase(db) {
-    db.ref('spam_numbers').on('value', (snap) => {
-        const container = document.getElementById('list-content');
-        container.innerHTML = "";
-        
-        db_local.transaction(function(tx) {
-            tx.executeSql('DELETE FROM blocked_numbers'); 
-            snap.forEach((child) => {
-                let num = child.key;
-                container.innerHTML += `<div class="notif-card">🚫 رقم مزعج نشط: ${num}</div>`;
-                tx.executeSql('INSERT OR REPLACE INTO blocked_numbers (number) VALUES (?)', [num]);
-            });
-        });
-    });
 }
