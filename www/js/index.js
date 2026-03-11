@@ -16,48 +16,35 @@ function onDeviceReady() {
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 1. إعداد قاعدة البيانات المحلية SQL (للحفظ الدائم والعمل بدون إنترنت)
+    // إعداد قاعدة البيانات المحلية SQL
     db_local = window.sqlitePlugin.openDatabase({name: 'nospam.db', location: 'default'});
     db_local.transaction(function(tx) {
         tx.executeSql('CREATE TABLE IF NOT EXISTS blocked_numbers (number TEXT PRIMARY KEY)');
     });
 
-    // 2. طلب كافة الأذونات (تم فحص الكود القديم وإضافة كل ما يلزم)
+    // طلب كافة الأذونات المطلوبة (كاملة بناءً على ملفاتك)
     requestAllPermissions();
 
-    // 3. التحقق من المرة الأولى لإظهار شاشة الشرح
     if (!localStorage.getItem('first_run_done')) {
         document.getElementById('welcome-overlay').classList.remove('hidden');
     }
 
-    // 4. مزامنة بيانات الفيرباس وحفظها في SQL
     syncFirebase(db);
 }
 
 function requestAllPermissions() {
     const permissions = cordova.plugins.permissions;
-    
-    // قائمة شاملة لكافة الأذونات المطلوبة بناءً على ملفات مشروعك
     const list = [
-        permissions.READ_PHONE_STATE,      // لمراقبة حالة الهاتف
-        permissions.READ_CALL_LOG,        // للوصول لسجل المكالمات
-        permissions.ANSWER_PHONE_CALLS,   // لإنهاء المكالمات (أندرويد 8+)
-        permissions.READ_PHONE_NUMBERS,   // لقراءة رقم المتصل بدقة
-        permissions.MODIFY_PHONE_STATE,   // للتحكم في حالة الاتصال
-        permissions.SYSTEM_ALERT_WINDOW,  // لإظهار تنبيهات فوق التطبيقات الأخرى
-        permissions.POST_NOTIFICATIONS,   // لإرسال إشعارات الحظر (أندرويد 13+)
-        permissions.CALL_PHONE            // لإدارة عمليات الاتصال
+        permissions.READ_PHONE_STATE,
+        permissions.READ_CALL_LOG,
+        permissions.ANSWER_PHONE_CALLS,
+        permissions.READ_PHONE_NUMBERS,
+        permissions.MODIFY_PHONE_STATE,
+        permissions.SYSTEM_ALERT_WINDOW,
+        permissions.POST_NOTIFICATIONS,
+        permissions.VIBRATE
     ];
-
-    permissions.requestPermissions(list, (status) => {
-        if (status.hasPermission) {
-            console.log("تم الحصول على كافة الأذونات بنجاح");
-        } else {
-            console.warn("بعض الأذونات تم رفضها، قد لا يعمل الحظر بشكل صحيح");
-        }
-    }, (error) => {
-        console.error("خطأ أثناء طلب الأذونات: ", error);
-    });
+    permissions.requestPermissions(list, (s) => console.log("Permissions OK"), (e) => console.error(e));
 }
 
 function firstTimeActivate() {
@@ -67,7 +54,6 @@ function firstTimeActivate() {
 }
 
 function goToSettings() {
-    // فتح إعدادات التطبيقات الافتراضية لاختيار التطبيق كـ Spam App
     if (window.plugins && window.plugins.intentShim) {
         window.plugins.intentShim.startActivity({
             action: "android.settings.MANAGE_DEFAULT_APPS_SETTINGS"
@@ -81,18 +67,12 @@ function syncFirebase(db) {
         container.innerHTML = "";
         
         db_local.transaction(function(tx) {
-            // مسح البيانات القديمة لضمان تحديث القائمة
-            tx.executeSql('DELETE FROM blocked_numbers');
-            
+            tx.executeSql('DELETE FROM blocked_numbers'); 
             snap.forEach((child) => {
                 let num = child.key;
-                container.innerHTML += `<div class="notif-card">📞 محظور: ${num}</div>`;
-                
-                // حفظ الرقم في SQL (هذا يضمن أن يعمل الحظر حتى لو انقطع الإنترنت)
+                container.innerHTML += `<div class="notif-card">🚫 رقم مزعج نشط: ${num}</div>`;
                 tx.executeSql('INSERT OR REPLACE INTO blocked_numbers (number) VALUES (?)', [num]);
             });
         });
-    }, (error) => {
-        console.error("خطأ في مزامنة Firebase: ", error);
     });
 }
