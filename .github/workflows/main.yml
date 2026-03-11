@@ -24,36 +24,38 @@ jobs:
         run: |
           npm install -g cordova
           
-          # 1. إضافة المنصة أندرويد 13 لضمان التوافق مع SDK 34
+          # 1. تنظيف شامل لبدء بناء نظيف
+          rm -rf platforms plugins package.json package-lock.json
+          npm init -y
+          
+          # 2. إضافة المنصة
           yes | sdkmanager --licenses || true
           cordova platform add android@13.0.0
           
-          # 2. إضافة الإضافات بأسماء صحيحة وموجودة في السجل الرسمي
+          # 3. إضافة الإضافات (بدون تحديد نسخ لتجنب أخطاء السجل)
           cordova plugin add cordova-sqlite-storage
           cordova plugin add cordova-plugin-android-permissions
           cordova plugin add cordova-plugin-device
-          cordova plugin add cordova-plugin-dialogs
-          cordova plugin add cordova-plugin-vibration
           cordova plugin add cordova-plugin-local-notification
           cordova plugin add com-darryncampbell-cordova-plugin-intent
           cordova plugin add https://github.com/renanoliveira/cordova-phone-call-trap.git
           
-          # 3. إصلاح تعارضات Gradle 8.7 (تغيير compile إلى implementation)
-          find platforms/android/ -name "*.gradle" -exec sed -i 's/compile /implementation /g' {} +
-          find platforms/android/ -name "*.gradle" -exec sed -i 's/compile(/implementation(/g' {} +
+          # 4. إصلاح Gradle 8.7 بطريقة ذكية (نصلح فقط داخل المجلدات المتضررة وليس النظام)
+          # هذا الأمر لن يلمس ملفات CordovaLib التي سببت الخطأ الأخير
+          find plugins/ -name "*.gradle" -exec sed -i 's/compile /implementation /g' {} +
+          find plugins/ -name "*.gradle" -exec sed -i 's/compile(/implementation(/g' {} +
 
-          # 4. حقن ملف الجافا (محرك الحظر) بالاسم المعتمد في config.xml
+          # 5. حقن الإصدار 34 يدوياً في ملف الخصائص (لحل مشكلة compileSdkVersion)
+          echo "cdvCompileSdkVersion=34" >> platforms/android/gradle.properties
+          echo "cdvTargetSdkVersion=34" >> platforms/android/gradle.properties
+          
+          # 6. حقن ملف الجافا (محرك الحظر)
           mkdir -p platforms/android/app/src/main/java/com/nospam/japan/
           cp CallScreeningService.java platforms/android/app/src/main/java/com/nospam/japan/MyCallScreeningService.java
           
-          # 5. حل مشكلة compileSdkVersion برمجياً
-          echo "cdvCompileSdkVersion=34" >> platforms/android/gradle.properties
-          echo "cdvTargetSdkVersion=34" >> platforms/android/gradle.properties
-
-          # 6. إنشاء مفتاح التوقيع
+          # 7. إنشاء التوقيع
           keytool -genkey -v -keystore release.jks -alias zakaria_key -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=Zakaria" -deststoretype pkcs12
           
-          # 7. إعداد ملف التوقيع
           cat <<EOF > build.json
           {
             "android": {
@@ -68,15 +70,13 @@ jobs:
           }
           EOF
 
-          # 8. البناء النهائي
-          cordova build android --release --device --buildConfig=build.json -- --packageType=apk
+          # 8. البناء النهائي - أضفنا باراميتر الـ SDK هنا أيضاً للتأكيد
+          cordova build android --release --device --buildConfig=build.json -- --project.properties.target=android-34 --packageType=apk
           
-          find platforms/android/app/build/outputs/apk/release/ -name "*.apk" -exec cp {} ./SOS_Japan_Final_Pro.apk \;
+          cp platforms/android/app/build/outputs/apk/release/*.apk ./SOS_Japan_Final_Pro.apk
 
-      - name: Upload Final Artifacts
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: SOS-Japan-Final-Pro
-          path: |
-            *.apk
-            release.jks
+          path: SOS_Japan_Final_Pro.apk
