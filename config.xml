@@ -1,48 +1,45 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.nospam.japan" version="1.8.0" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android">
+<widget id="com.nospam.japan" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>SOS Japan Pro</name>
-    <description>نظام حماية وحظر المكالمات المزعجة</description>
-    <author email="dev@zakaria.com">Zakaria MZ Matar</author>
+    <description>تطبيق حماية المكالمات المزعجة في اليابان - نسخة برو أوفلاين</description>
+    <author email="dev@koodi.cloud" href="https://koodi.cloud">Zakaria Mater</author>
+    
     <content src="index.html" />
     <access origin="*" />
-    <allow-navigation href="*" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
     <allow-intent href="tel:*" />
-
+    <allow-intent href="sms:*" />
+    
     <platform name="android">
         <preference name="AndroidXEnabled" value="true" />
-        <preference name="android-minSdkVersion" value="26" />
+        <preference name="GradleVersion" value="8.7" />
+        <preference name="android-minSdkVersion" value="24" />
         <preference name="android-targetSdkVersion" value="34" />
+        <preference name="KeepRunning" value="true" />
 
-        <plugin name="cordova-sqlite-storage" spec="^6.0.0" />
-
-        <feature name="IntentShim">
-            <param name="android-package" value="com.napolitano.cordova.plugin.intent.IntentShim" />
-        </feature>
-
-        <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
-            <application android:usesCleartextTraffic="true" />
-        </edit-config>
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+            <uses-permission android:name="android.permission.CALL_PHONE" />
+            <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
+            <uses-permission android:name="android.permission.READ_CALL_LOG" />
+            <uses-permission android:name="android.permission.BIND_SCREENING_SERVICE" />
+        </config-file>
 
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
-            <service android:name="com.nospam.japan.CallScreeningService"
+            <service android:name="com.nospam.japan.MyCallScreeningService"
                      android:permission="android.permission.BIND_SCREENING_SERVICE"
                      android:exported="true">
-                <intent-filter><action android:name="android.telecom.CallScreeningService" /></intent-filter>
+                <intent-filter>
+                    <action android:name="android.telecom.CallScreeningService" />
+                </intent-filter>
             </service>
         </config-file>
-
-        <config-file target="AndroidManifest.xml" parent="/*">
-            <uses-permission android:name="android.permission.INTERNET" />
-            <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-            <uses-permission android:name="android.permission.READ_CALL_LOG" />
-            <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
-            <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
-            <uses-permission android:name="android.permission.MODIFY_PHONE_STATE" />
-            <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-            <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-            <uses-permission android:name="android.permission.VIBRATE" />
-            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-        </config-file>
     </platform>
+
+    <plugin name="cordova-plugin-android-permissions" spec="~1.1.5" />
+    <plugin name="cordova-plugin-device" spec="~2.1.0" />
+    <plugin name="cordova-sqlite-storage" spec="~6.1.0" />
+    <plugin name="cordova-plugin-local-notification-12" spec="^1.2.3" />
+    <plugin name="com-darryncampbell-cordova-plugin-intent" spec="~2.0.0" />
 </widget>
