@@ -94,7 +94,7 @@ function syncFirebase(db) {
         console.log("Firebase Offline: سيتم الاعتماد على البيانات المحلية.");
     });
 }
-
+صيف
 function firstTimeActivate() {
     localStorage.setItem('first_run_done', 'true');
     document.getElementById('welcome-overlay').classList.add('hidden');
