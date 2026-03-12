@@ -26,7 +26,9 @@
 
         <config-file target="AndroidManifest.xml" parent="/*">
             <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+            <uses-permission android:name="android.permission.READ_CALL_LOG" />
         </config-file>
+        
     </platform>
 
     <plugin name="cordova-plugin-android-permissions" />
@@ -34,4 +36,5 @@
     <plugin name="cordova-sqlite-storage" />
     <plugin name="cordova-plugin-local-notification" />
     <plugin name="com-darryncampbell-cordova-plugin-intent" />
+    <plugin name="cordova-plugin-calllog" />
 </widget>
