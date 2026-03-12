@@ -15,13 +15,17 @@
         <preference name="android-targetSdkVersion" value="34" />
         
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
-            <service android:name="com.nospam.japan.MyCallScreeningService"
+            <service android:name="com.nospam.japan.CallBlockerService"
                      android:permission="android.permission.BIND_SCREENING_SERVICE"
                      android:exported="true">
                 <intent-filter>
                     <action android:name="android.telecom.CallScreeningService" />
                 </intent-filter>
             </service>
+        </config-file>
+
+        <config-file target="AndroidManifest.xml" parent="/*">
+            <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
         </config-file>
     </platform>
 
