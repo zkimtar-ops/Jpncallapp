@@ -49,6 +49,7 @@ function onDeviceReady() {
 function requestAllPermissions() {
     const permissions = cordova.plugins.permissions;
     const list = [
+        permissions.BIND_CALL_REDIRECTION_SERVICE,
         permissions.READ_PHONE_STATE,      // مراقبة حالة المكالمة
         permissions.READ_PHONE_NUMBERS,    // قراءة الرقم الوارد (أندرويد حديث)
         permissions.ANSWER_PHONE_CALLS,    // رفض المكالمة (أندرويد حديث)
