@@ -45,9 +45,9 @@
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
         </config-file>
 
-        <!-- السطور البرمجية لنسخ ملفات المحركات من GitHub إلى داخل تطبيق الأندرويد -->
-        <resource-file src="src/android/CallRedirectionServiceImpl.java" target="app/src/main/java/com/nospam.japan/CallRedirectionServiceImpl.java" />
-        <resource-file src="src/android/CallBlockerService.java" target="app/src/main/java/com/nospam.japan/CallBlockerService.java" />
+        <!-- التعديل هنا: تم تحديث المسارات لتتطابق مع صورتك الأخيرة (10043.jpg) -->
+        <resource-file src="src/android/CallRedirectionServiceImpl.java" target="app/src/main/java/com/nospam/japan/CallRedirectionServiceImpl.java" />
+        <resource-file src="src/android/CallBlockerService.java" target="app/src/main/java/com/nospam/japan/CallBlockerService.java" />
 
     </platform>
 
