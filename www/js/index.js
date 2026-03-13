@@ -1,8 +1,7 @@
-// ربط الدوال بـ Window لضمان استدعائها من الـ HTML
-window.loadRealCallLogs = loadRealCallLogs;
+// ربط الدوال بالنافذة لضمان الوصول إليها من HTML
 window.firstTimeActivate = firstTimeActivate;
 window.goToSettings = goToSettings;
-window.manualBlock = manualBlock;
+window.toggleIntlBlock = toggleIntlBlock;
 
 document.addEventListener('deviceready', onDeviceReady, false);
 
@@ -28,76 +27,54 @@ function onDeviceReady() {
         tx.executeSql('CREATE TABLE IF NOT EXISTS blocked_numbers (number TEXT PRIMARY KEY)');
     }, null, () => loadNumbersFromSQL());
 
-    // طلب الأذونات
+    // طلب الصلاحيات الأساسية
     requestAllPermissions();
 
-    // التحقق من المرة الأولى
+    // التحقق من حالة التبديل الدولية المحفوظة
+    checkIntlToggleState();
+
     if (!localStorage.getItem('first_run_done')) {
         document.getElementById('welcome-overlay').classList.remove('hidden');
     }
 
-    // تشغيل المزامنة والتنبيهات
     syncFirebase(db);
     loadAdminMessages(db);
 }
 
-function loadRealCallLogs() {
-    const container = document.getElementById('call-logs-list');
-    if (!container) return;
-
-    container.innerHTML = '<div class="text-center py-20 text-blue-500 animate-pulse text-xs">جاري الوصول لسجل الهاتف...</div>';
-
-    // استخدام اسم الإضافة الصحيح
-    const callLogManager = window.plugins.calllog;
-
-    if (!callLogManager) {
-        container.innerHTML = '<div class="bg-red-50 text-red-500 p-4 rounded-2xl text-[10px] text-center font-bold">خطأ: إضافة السجل غير مثبتة. تأكد من استخدام cordova-plugin-calllog في main.yml</div>';
-        return;
-    }
-
-    // جلب آخر 20 مكالمة
-    callLogManager.getCallLog([], function(data) {
-        if (!data || data.length === 0) {
-            container.innerHTML = '<div class="text-center py-20 text-slate-400 text-xs">سجل الهاتف فارغ</div>';
-            return;
-        }
-
-        container.innerHTML = "";
-        data.slice(0, 20).forEach(call => {
-            const d = new Date(call.date).toLocaleString('ar-EG', {hour:'2-digit', minute:'2-digit'});
-            let icon = call.type == 3 ? "phone-missed" : (call.type == 2 ? "phone-outgoing" : "phone-incoming");
-            let iconColor = call.type == 3 ? "text-red-500" : (call.type == 2 ? "text-blue-500" : "text-slate-400");
-
-            container.innerHTML += `
-                <div class="bg-white p-4 rounded-3xl border border-slate-50 flex items-center justify-between shadow-sm mb-3 animate-fade-in">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center">
-                            <i data-lucide="${icon}" class="w-5 h-5 ${iconColor}"></i>
-                        </div>
-                        <div>
-                            <p class="font-bold text-slate-700 text-sm tracking-wider">${call.number || 'رقم خاص'}</p>
-                            <p class="text-[9px] text-slate-400 font-bold">${d}</p>
-                        </div>
-                    </div>
-                    <button onclick="window.manualBlock('${call.number}')" class="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-[10px] font-bold active:scale-90 transition-transform">حظر</button>
-                </div>`;
-        });
-        if (window.lucide) lucide.createIcons();
-    }, (err) => {
-        container.innerHTML = '<div class="text-center text-red-500 py-10 text-xs">فشل الوصول للسجل: ' + err + '</div>';
-    });
+// دالة فحص حالة زر المكالمات الدولية وتحديث الواجهة
+function checkIntlToggleState() {
+    const isIntlBlocked = localStorage.getItem('intl_block') === 'true';
+    const toggle = document.getElementById('intl-toggle');
+    if (toggle) toggle.checked = isIntlBlocked;
 }
 
-function loadAdminMessages(db) {
-    db.ref('admin_alerts').on('value', (snap) => {
-        const container = document.getElementById('admin-messages');
-        if (snap.exists() && container) {
-            container.innerHTML = "";
-            snap.forEach(child => {
-                container.innerHTML += `<div class="bg-orange-50 border border-orange-100 p-4 rounded-2xl text-orange-800 shadow-sm animate-pulse">📢 ${child.val()}</div>`;
-            });
-        }
-    });
+// دالة التحكم في خيار حظر المكالمات الدولية
+function toggleIntlBlock(isEnabled) {
+    localStorage.setItem('intl_block', isEnabled);
+    
+    const message = isEnabled ? "تفعيل حظر المكالمات الدولية (+)" : "إيقاف حظر المكالمات الدولية";
+    
+    // إظهار تنبيه للمستخدم
+    const toast = document.createElement('div');
+    toast.className = "fixed bottom-24 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-6 py-3 rounded-2xl text-[10px] font-bold z-[5000] shadow-xl animate-bounce";
+    toast.innerText = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+
+    // ملاحظة تقنية: الحظر الفعلي يتم برمجياً عند ورود المكالمة بفحص الرقم إذا كان يبدأ بـ + أو 00
+}
+
+function requestAllPermissions() {
+    const permissions = cordova.plugins.permissions;
+    const list = [
+        permissions.READ_PHONE_STATE,     // ضروري لمعرفة وجود مكالمة
+        permissions.READ_PHONE_NUMBERS,   // ضروري لمعرفة رقم المتصل وفحصه
+        permissions.ANSWER_PHONE_CALLS,   // ضروري لقطع المكالمة (أندرويد 8+)
+        permissions.SYSTEM_ALERT_WINDOW,  // للظهور فوق التطبيقات
+        permissions.POST_NOTIFICATIONS    // للتنبيهات (أندرويد 13+)
+    ];
+
+    permissions.requestPermissions(list, (s) => console.log("Permissions Granted"), (e) => console.error(e));
 }
 
 function loadNumbersFromSQL() {
@@ -110,12 +87,14 @@ function loadNumbersFromSQL() {
                 for (var i = 0; i < rs.rows.length; i++) {
                     let num = rs.rows.item(i).number;
                     container.innerHTML += `
-                        <div class="bg-white p-4 rounded-2xl border-r-4 border-blue-600 shadow-sm flex justify-between items-center mb-2">
+                        <div class="bg-white p-4 rounded-2xl border-r-4 border-blue-500 shadow-sm flex justify-between items-center mb-2 animate-fade-in">
                             <span class="text-slate-800 font-bold text-sm tracking-widest">${num}</span>
                             <i data-lucide="shield-check" class="text-blue-100 w-5 h-5"></i>
                         </div>`;
                 }
                 if (window.lucide) lucide.createIcons();
+            } else {
+                container.innerHTML = '<p class="text-center py-6 text-slate-300 text-xs italic">القائمة فارغة حالياً</p>';
             }
         });
     });
@@ -132,20 +111,16 @@ function syncFirebase(db) {
     });
 }
 
-function manualBlock(num) {
-    if (!num) return;
-    db_local.transaction(function(tx) {
-        tx.executeSql('INSERT OR REPLACE INTO blocked_numbers (number) VALUES (?)', [num], function() {
-            alert("تم حظر " + num);
-            loadNumbersFromSQL();
-        });
+function loadAdminMessages(db) {
+    db.ref('admin_alerts').on('value', (snap) => {
+        const container = document.getElementById('admin-messages');
+        if (snap.exists() && container) {
+            container.innerHTML = "";
+            snap.forEach(child => {
+                container.innerHTML += `<div class="bg-orange-50 border border-orange-100 p-4 rounded-2xl text-orange-900 text-[10px] font-bold shadow-sm mb-2">📢 ${child.val()}</div>`;
+            });
+        }
     });
-}
-
-function requestAllPermissions() {
-    const permissions = cordova.plugins.permissions;
-    const list = [permissions.READ_PHONE_STATE, permissions.READ_CALL_LOG, permissions.ANSWER_PHONE_CALLS, permissions.SYSTEM_ALERT_WINDOW];
-    permissions.requestPermissions(list, null, null);
 }
 
 function firstTimeActivate() {
@@ -156,6 +131,8 @@ function firstTimeActivate() {
 
 function goToSettings() {
     if (window.plugins && window.plugins.intentShim) {
-        window.plugins.intentShim.startActivity({ action: "android.settings.MANAGE_DEFAULT_APPS_SETTINGS" }, () => {}, () => {});
+        window.plugins.intentShim.startActivity({
+            action: "android.settings.MANAGE_DEFAULT_APPS_SETTINGS"
+        }, () => {}, (e) => alert("خطأ في فتح الإعدادات"));
     }
 }
