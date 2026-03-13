@@ -8,118 +8,94 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
-        body { font-family: 'Cairo', sans-serif; background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        body { font-family: 'Cairo', sans-serif; background: #f8fafc; user-select: none; }
         .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .toggle-checkbox:checked { right: 0; border-color: #2563eb; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #2563eb; }
     </style>
 </head>
 <body class="antialiased text-slate-900">
 
-    <!-- شاشة الترحيب والشرح -->
-    <div id="welcome-overlay" class="fixed inset-0 z-[1000] bg-white hidden overflow-y-auto">
-        <div id="step-1" class="min-h-screen flex flex-col items-center justify-center p-8 text-center">
-            <div class="mb-8 p-6 bg-blue-50 rounded-full text-blue-600 animate-bounce">
-                <i data-lucide="shield" class="w-20 h-20"></i>
-            </div>
-            <h2 class="text-3xl font-bold mb-4">مرحباً بك زكي 🚫</h2>
-            <p class="text-slate-600 text-lg mb-10">نظام حماية المكالمات المزعجة في اليابان.</p>
-            <button onclick="showStep(2)" class="w-full bg-blue-600 text-white font-bold py-5 rounded-3xl text-xl shadow-xl">استمرار</button>
+    <!-- شاشة الترحيب -->
+    <div id="welcome-overlay" class="fixed inset-0 z-[1000] bg-white hidden flex flex-col items-center justify-center p-8 text-center">
+        <div class="mb-8 p-6 bg-blue-50 rounded-full text-blue-600 animate-bounce">
+            <i data-lucide="shield-check" class="w-16 h-16"></i>
         </div>
-        <div id="step-2" class="min-h-screen flex flex-col items-center justify-center p-8 text-center hidden">
-            <div class="mb-8 p-6 bg-indigo-50 rounded-full text-indigo-600"><i data-lucide="info" class="w-16 h-16"></i></div>
-            <h2 class="text-2xl font-bold mb-6">تفعيل الحظر</h2>
-            <div class="bg-slate-50 p-6 rounded-[30px] w-full text-right mb-10 space-y-4 text-sm font-bold">
-                <p>1. اضغط "تفعيل".</p>
-                <p>2. اختر Caller ID & Spam.</p>
-                <p>3. اختر SOS Japan Pro كافتراضي.</p>
-            </div>
-            <button onclick="firstTimeActivate()" class="w-full bg-blue-600 text-white font-bold py-5 rounded-3xl text-xl">تفعيل 🚀</button>
-        </div>
+        <h2 class="text-3xl font-bold mb-4">مرحباً زكي 🚫</h2>
+        <p class="text-slate-500 mb-10 text-lg">نظام حماية المكالمات الدولية والمزعجة في اليابان.</p>
+        <button onclick="window.firstTimeActivate()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl text-xl shadow-lg active:scale-95 transition-transform">ابدأ الآن 🚀</button>
     </div>
 
     <!-- الهيدر -->
-    <header class="bg-white border-b border-slate-100 px-6 py-5 sticky top-0 z-40 glass">
+    <header class="bg-white/80 border-b border-slate-100 px-6 py-4 sticky top-0 z-40 glass">
         <div class="flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2 rounded-2xl shadow-lg"><i data-lucide="shield-check" class="w-6 h-6 text-white"></i></div>
-                <h1 class="font-bold text-lg">SOS Japan Pro</h1>
+            <div class="flex items-center gap-2">
+                <div class="bg-blue-600 p-1.5 rounded-lg shadow-md"><i data-lucide="shield" class="w-5 h-5 text-white"></i></div>
+                <h1 class="font-bold text-slate-800">SOS Japan Pro</h1>
             </div>
-            <button onclick="goToSettings()" class="p-2 text-slate-400 bg-slate-50 rounded-full"><i data-lucide="settings" class="w-6 h-6"></i></button>
+            <button onclick="window.goToSettings()" class="p-2 text-slate-400 bg-slate-50 rounded-full"><i data-lucide="settings" class="w-5 h-5"></i></button>
         </div>
     </header>
 
-    <main class="p-6 pb-32">
-        <!-- التبويب الرئيسي -->
-        <div id="tab-home" class="tab-content active space-y-6">
-            <h3 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="layers" class="w-4 h-4"></i> أرقام الحظر</h3>
+    <main class="p-6 space-y-6">
+        
+        <!-- خيار حظر المكالمات الدولية -->
+        <div class="bg-white p-6 rounded-[35px] shadow-sm border border-slate-50 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                    <i data-lucide="globe"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-800 text-sm">حظر المكالمات الدولية</h4>
+                    <p class="text-[10px] text-slate-400 font-bold">حظر أي رقم يبدأ بـ (+) أو (00)</p>
+                </div>
+            </div>
+            <!-- مفتاح التشغيل -->
+            <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
+                <input type="checkbox" name="toggle" id="intl-toggle" onchange="window.toggleIntlBlock(this.checked)" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer right-6 checked:right-0 transition-all duration-300"/>
+                <label for="intl-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+            </div>
+        </div>
+
+        <!-- تنبيهات الإدارة -->
+        <div id="admin-section" class="space-y-3">
+            <h3 class="font-bold text-slate-700 flex items-center gap-2 text-sm"><i data-lucide="megaphone" class="w-4 h-4 text-orange-500"></i> تنبيهات الإدارة</h3>
+            <div id="admin-messages" class="space-y-2">
+                <div class="text-center py-4 text-slate-300 text-[10px]">لا توجد تنبيهات حالياً</div>
+            </div>
+        </div>
+
+        <!-- قائمة الحماية -->
+        <div class="space-y-3">
+            <h3 class="font-bold text-slate-700 flex items-center gap-2 text-sm"><i data-lucide="list" class="w-4 h-4 text-blue-500"></i> الأرقام المحظورة حالياً</h3>
             <div id="list-content" class="space-y-3">
-                <div class="text-center py-10 text-slate-400">جاري جلب القائمة...</div>
-            </div>
-
-            <!-- تنبيهات الإدارة -->
-            <div id="admin-section" class="space-y-3">
-                <h3 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="megaphone" class="w-4 h-4 text-orange-500"></i> تنبيهات الإدارة</h3>
-                <div id="admin-messages" class="space-y-2 text-xs font-bold text-orange-800"></div>
-            </div>
-
-            <div class="p-6 bg-slate-900 rounded-[30px] text-white relative overflow-hidden">
-                <h4 class="font-bold mb-2">هل تواجه مشكلة؟</h4>
-                <p class="text-slate-400 text-xs mb-4">تأكد من ضبط التطبيق كافتراضي للحظر.</p>
-                <button onclick="goToSettings()" class="bg-white/10 text-white text-[10px] py-2 px-4 rounded-xl border border-white/20">إعدادات النظام</button>
+                <div class="text-center py-10 text-slate-300 text-xs italic">جاري جلب بيانات السحابة...</div>
             </div>
         </div>
 
-        <!-- تبويب السجل -->
-        <div id="tab-history" class="tab-content space-y-6">
-            <div class="flex items-center justify-between">
-                <h3 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="history" class="w-5 h-5 text-indigo-500"></i> سجل المكالمات</h3>
-                <!-- زر التحديث المهم -->
-                <button onclick="window.loadRealCallLogs()" class="p-2 bg-blue-100 rounded-full text-blue-600 active:rotate-180 transition-all duration-500 shadow-sm">
-                    <i data-lucide="rotate-cw" class="w-5 h-5"></i>
-                </button>
+        <!-- مربع المساعدة -->
+        <div class="p-8 bg-slate-900 rounded-[40px] text-white relative overflow-hidden shadow-xl">
+            <div class="relative z-10">
+                <h4 class="font-bold mb-2">تفعيل الحماية الكاملة</h4>
+                <p class="text-slate-400 text-[10px] mb-6 leading-relaxed">يجب تعيين التطبيق كافتراضي (Default Spam App) ليعمل الحظر الدولي بنجاح.</p>
+                <button onclick="window.goToSettings()" class="bg-white/10 text-white text-[10px] py-3 px-6 rounded-2xl border border-white/20 font-bold active:bg-white/20 transition-all">إعدادات النظام ⚙️</button>
             </div>
-            
-            <div id="call-logs-list" class="space-y-3 min-h-[200px]">
-                <div class="text-center py-20 text-slate-300 italic">اضغط زر التحديث بالأعلى...</div>
-            </div>
+            <i data-lucide="help-circle" class="absolute -bottom-6 -left-6 w-32 h-32 text-white/5"></i>
         </div>
+
     </main>
 
-    <!-- التنقل السفلي -->
-    <nav class="fixed bottom-0 w-full bg-white border-t border-slate-100 px-10 py-5 flex justify-around items-center z-50 glass rounded-t-[35px] shadow-2xl">
-        <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center text-blue-600">
-            <i data-lucide="home" class="w-7 h-7"></i>
-            <span class="text-[10px] mt-1 font-bold">الرئيسية</span>
-        </button>
-        <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center text-slate-300">
-            <i data-lucide="history" class="w-7 h-7"></i>
-            <span class="text-[10px] mt-1 font-bold">السجل</span>
-        </button>
-    </nav>
-
-    <!-- ملفات النظام بالترتيب الصحيح -->
     <script src="cordova.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <script src="js/index.js"></script>
-
     <script>
-        // دالة التبديل - نضعها هنا لتكون سريعة الاستجابة
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.getElementById('tab-' + tabId).classList.add('active');
-            const isHome = tabId === 'home';
-            document.getElementById('nav-home').className = isHome ? 'flex flex-col items-center text-blue-600' : 'flex flex-col items-center text-slate-300';
-            document.getElementById('nav-history').className = !isHome ? 'flex flex-col items-center text-blue-600' : 'flex flex-col items-center text-slate-300';
-            if (!isHome && window.loadRealCallLogs) window.loadRealCallLogs();
-        }
-        function showStep(n) {
-            document.querySelectorAll('[id^="step-"]').forEach(s => s.classList.add('hidden'));
-            document.getElementById('step-' + n).classList.remove('hidden');
-        }
         lucide.createIcons();
+        // تحديث حالة الزر عند التحميل
+        document.addEventListener('DOMContentLoaded', () => {
+            const isIntlBlocked = localStorage.getItem('intl_block') === 'true';
+            document.getElementById('intl-toggle').checked = isIntlBlocked;
+        });
     </script>
 </body>
 </html>
