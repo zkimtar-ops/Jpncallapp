@@ -1,4 +1,4 @@
-// ربط الدوال بالنافذة لضمان الوصول إليها من HTML
+// ربط جميع الوظائف بنافذة المتصفح لضمان استدعائها من HTML
 window.firstTimeActivate = firstTimeActivate;
 window.goToSettings = goToSettings;
 window.toggleIntlBlock = toggleIntlBlock;
@@ -18,83 +18,103 @@ const firebaseConfig = {
 var db_local = null;
 
 function onDeviceReady() {
+    // تشغيل Firebase
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // إعداد قاعدة البيانات المحلية SQL
+    // إعداد قاعدة البيانات المحلية SQL (Offline Support)
     db_local = window.sqlitePlugin.openDatabase({name: 'nospam.db', location: 'default'});
     db_local.transaction(function(tx) {
         tx.executeSql('CREATE TABLE IF NOT EXISTS blocked_numbers (number TEXT PRIMARY KEY)');
     }, null, () => loadNumbersFromSQL());
 
-    // طلب الصلاحيات الأساسية
+    // 1. طلب القائمة الكاملة للأذونات (شاملة)
     requestAllPermissions();
 
-    // التحقق من حالة التبديل الدولية المحفوظة
-    checkIntlToggleState();
+    // 2. استعادة حالة مفتاح التبديل الدولي
+    restoreIntlState();
 
+    // 3. التحقق من المرة الأولى
     if (!localStorage.getItem('first_run_done')) {
-        document.getElementById('welcome-overlay').classList.remove('hidden');
+        const welcome = document.getElementById('welcome-overlay');
+        if (welcome) welcome.classList.remove('hidden');
     }
 
+    // 4. تشغيل المزامنة والرسائل
     syncFirebase(db);
     loadAdminMessages(db);
 }
 
-// دالة فحص حالة زر المكالمات الدولية وتحديث الواجهة
-function checkIntlToggleState() {
-    const isIntlBlocked = localStorage.getItem('intl_block') === 'true';
-    const toggle = document.getElementById('intl-toggle');
-    if (toggle) toggle.checked = isIntlBlocked;
-}
-
-// دالة التحكم في خيار حظر المكالمات الدولية
-function toggleIntlBlock(isEnabled) {
-    localStorage.setItem('intl_block', isEnabled);
-    
-    const message = isEnabled ? "تفعيل حظر المكالمات الدولية (+)" : "إيقاف حظر المكالمات الدولية";
-    
-    // إظهار تنبيه للمستخدم
-    const toast = document.createElement('div');
-    toast.className = "fixed bottom-24 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-6 py-3 rounded-2xl text-[10px] font-bold z-[5000] shadow-xl animate-bounce";
-    toast.innerText = message;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 2500);
-
-    // ملاحظة تقنية: الحظر الفعلي يتم برمجياً عند ورود المكالمة بفحص الرقم إذا كان يبدأ بـ + أو 00
-}
-
+// القائمة الكاملة للأذونات المطلوبة لأندرويد 10-14
 function requestAllPermissions() {
     const permissions = cordova.plugins.permissions;
     const list = [
-        permissions.READ_PHONE_STATE,     // ضروري لمعرفة وجود مكالمة
-        permissions.READ_PHONE_NUMBERS,   // ضروري لمعرفة رقم المتصل وفحصه
-        permissions.ANSWER_PHONE_CALLS,   // ضروري لقطع المكالمة (أندرويد 8+)
-        permissions.SYSTEM_ALERT_WINDOW,  // للظهور فوق التطبيقات
-        permissions.POST_NOTIFICATIONS    // للتنبيهات (أندرويد 13+)
+        permissions.READ_PHONE_STATE,      // مراقبة حالة المكالمة
+        permissions.READ_PHONE_NUMBERS,    // قراءة الرقم الوارد (أندرويد حديث)
+        permissions.ANSWER_PHONE_CALLS,    // رفض المكالمة (أندرويد حديث)
+        permissions.MODIFY_PHONE_STATE,    // التحكم بحالة الهاتف (قديم/حديث)
+        permissions.SYSTEM_ALERT_WINDOW,   // الظهور فوق التطبيقات
+        permissions.POST_NOTIFICATIONS,    // التنبيهات (أندرويد 13+)
+        permissions.READ_CALL_LOG,         // الوصول لسجل المكالمات (للفحص الدقيق)
+        permissions.FOREGROUND_SERVICE     // العمل في الخلفية (أندرويد 14)
     ];
 
-    permissions.requestPermissions(list, (s) => console.log("Permissions Granted"), (e) => console.error(e));
+    permissions.requestPermissions(list, (s) => {
+        if (s.hasPermission) console.log("All Permissions Granted Successfully");
+    }, (e) => console.error("Permission Request Failed", e));
 }
 
+// منطق حظر المكالمات الدولية (On/Off)
+function toggleIntlBlock(isEnabled) {
+    localStorage.setItem('intl_block', isEnabled);
+    updateIntlUI(isEnabled);
+    
+    showToast(isEnabled ? "تم تفعيل حظر المكالمات الدولية ✅" : "تم إيقاف حظر المكالمات الدولية ⚠️");
+}
+
+function restoreIntlState() {
+    const isEnabled = localStorage.getItem('intl_block') === 'true';
+    const checkbox = document.getElementById('intl-toggle');
+    if (checkbox) checkbox.checked = isEnabled;
+    updateIntlUI(isEnabled);
+}
+
+function updateIntlUI(isEnabled) {
+    const label = document.getElementById('intl-status-label');
+    if (label) {
+        label.innerText = isEnabled ? "الحالة: نـشـط الآن" : "الحالة: غير نشط";
+        label.className = isEnabled ? 
+            "text-[9px] font-bold py-1 px-3 rounded-full inline-block bg-green-50 text-green-600 mt-2" : 
+            "text-[9px] font-bold py-1 px-3 rounded-full inline-block bg-slate-100 text-slate-400 mt-2";
+    }
+}
+
+// مزامنة الأرقام وعرضها
 function loadNumbersFromSQL() {
     const container = document.getElementById('list-content');
+    const countBadge = document.getElementById('block-count');
     if (!container) return;
+
     db_local.transaction(function(tx) {
         tx.executeSql('SELECT number FROM blocked_numbers', [], function(tx, rs) {
             if (rs.rows.length > 0) {
                 container.innerHTML = "";
+                if (countBadge) countBadge.innerText = rs.rows.length;
                 for (var i = 0; i < rs.rows.length; i++) {
                     let num = rs.rows.item(i).number;
                     container.innerHTML += `
-                        <div class="bg-white p-4 rounded-2xl border-r-4 border-blue-500 shadow-sm flex justify-between items-center mb-2 animate-fade-in">
-                            <span class="text-slate-800 font-bold text-sm tracking-widest">${num}</span>
-                            <i data-lucide="shield-check" class="text-blue-100 w-5 h-5"></i>
+                        <div class="bg-white p-5 rounded-[30px] border-r-8 border-blue-600 shadow-sm flex justify-between items-center mb-1">
+                            <div>
+                                <p class="font-bold text-slate-800 text-lg tracking-widest">${num}</p>
+                                <p class="text-[9px] text-blue-500 font-bold italic opacity-70 uppercase tracking-tighter">محمي محلياً</p>
+                            </div>
+                            <i data-lucide="shield-check" class="text-blue-100 w-7 h-7"></i>
                         </div>`;
                 }
                 if (window.lucide) lucide.createIcons();
             } else {
-                container.innerHTML = '<p class="text-center py-6 text-slate-300 text-xs italic">القائمة فارغة حالياً</p>';
+                container.innerHTML = '<p class="text-center py-10 text-slate-300 text-xs italic">لا توجد أرقام محظورة حالياً</p>';
+                if (countBadge) countBadge.innerText = "0";
             }
         });
     });
@@ -117,15 +137,29 @@ function loadAdminMessages(db) {
         if (snap.exists() && container) {
             container.innerHTML = "";
             snap.forEach(child => {
-                container.innerHTML += `<div class="bg-orange-50 border border-orange-100 p-4 rounded-2xl text-orange-900 text-[10px] font-bold shadow-sm mb-2">📢 ${child.val()}</div>`;
+                container.innerHTML += `
+                    <div class="bg-white border-2 border-orange-100 p-5 rounded-[30px] text-orange-900 text-[11px] font-bold shadow-sm mb-2 leading-relaxed">
+                        <span class="bg-orange-500 text-white px-2 py-0.5 rounded-lg text-[8px] ml-2">هام</span>
+                        ${child.val()}
+                    </div>`;
             });
         }
     });
 }
 
+function showToast(msg) {
+    const toast = document.getElementById('toast-msg');
+    if (toast) {
+        toast.innerText = msg;
+        toast.style.opacity = "1";
+        setTimeout(() => toast.style.opacity = "0", 2500);
+    }
+}
+
 function firstTimeActivate() {
     localStorage.setItem('first_run_done', 'true');
-    document.getElementById('welcome-overlay').classList.add('hidden');
+    const overlay = document.getElementById('welcome-overlay');
+    if (overlay) overlay.classList.add('hidden');
     goToSettings();
 }
 
@@ -133,6 +167,6 @@ function goToSettings() {
     if (window.plugins && window.plugins.intentShim) {
         window.plugins.intentShim.startActivity({
             action: "android.settings.MANAGE_DEFAULT_APPS_SETTINGS"
-        }, () => {}, (e) => alert("خطأ في فتح الإعدادات"));
+        }, () => {}, (e) => console.error(e));
     }
 }
